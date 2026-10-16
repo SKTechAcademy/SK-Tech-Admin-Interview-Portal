@@ -24,6 +24,11 @@
       background: #eef3ff;
     }
   </style>
+  <script>
+    if (new URLSearchParams(window.location.search).has('v')) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+    }
+  </script>
 </head>
 <body>
   <iframe
