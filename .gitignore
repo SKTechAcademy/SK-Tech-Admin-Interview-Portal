@@ -1,0 +1,11 @@
+# Local Apps Script / clasp state
+.clasp.json
+.clasprc.json
+
+# Local tooling
+node_modules/
+*.log
+
+# Operating-system files
+.DS_Store
+Thumbs.db

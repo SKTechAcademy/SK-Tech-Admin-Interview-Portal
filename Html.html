@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b2d5c">
+  <title>SK Tech Interview Panel Sheet</title>
+
+  <style>
+    :root {
+      --navy: #0b2d5c;
+      --blue: #4a76d1;
+      --orange: #ff7a00;
+      --today: #86e3a3;
+      --conflict: #e06666;
+      --upcoming: #c7a6f5;
+      --page-start: #eef3ff;
+      --page-end: #ffffff;
+      --grid: rgba(255, 255, 255, 0.72);
+      --shadow: 0 10px 30px rgba(11, 45, 92, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--page-start);
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.96) 0, rgba(255, 255, 255, 0) 42%),
+        linear-gradient(135deg, var(--page-start), var(--page-end));
+      color: #111827;
+      font-family: Arial, Helvetica, sans-serif;
+      text-align: center;
+    }
+
+    .main-header {
+      padding: 30px 16px 20px;
+    }
+
+    .logo {
+      width: 115px;
+      height: 115px;
+      border: 4px solid #ff8a00;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
+      object-fit: cover;
+      padding: 6px;
+    }
+
+    h1 {
+      margin: 18px 0 8px;
+      color: var(--navy);
+      font-size: clamp(1.5rem, 3vw, 2.125rem);
+      font-weight: 800;
+      letter-spacing: 3px;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+
+    .tagline {
+      margin: 0;
+      color: var(--orange);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin: 20px auto;
+      padding: 0 16px;
+    }
+
+    .legend-item {
+      border-radius: 999px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+      font-size: 0.875rem;
+      font-weight: 700;
+      padding: 8px 14px;
+    }
+
+    .legend-item.today,
+    tr.today > td {
+      background: var(--today);
+    }
+
+    .legend-item.conflict,
+    tr.conflict > td {
+      background: var(--conflict);
+      color: #ffffff;
+    }
+
+    .legend-item.upcoming,
+    tr.upcoming > td {
+      background: var(--upcoming);
+    }
+
+    .table-card {
+      width: 95%;
+      margin: 20px auto;
+      overflow-x: auto;
+      border: 1px solid #d9e2f3;
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      scrollbar-color: #94a3b8 #eef2f7;
+      scrollbar-width: thin;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1380px;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+    }
+
+    col.id { width: 8%; }
+    col.name { width: 10%; }
+    col.round { width: 11%; }
+    col.technology { width: 12%; }
+    col.company { width: 9%; }
+    col.date { width: 7%; }
+    col.time { width: 20.5%; }
+    col.batch { width: 4%; }
+
+    th {
+      border-right: 1px solid rgba(190, 209, 255, 0.7);
+      border-bottom: 1px solid rgba(190, 209, 255, 0.85);
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: #ffffff;
+      font-size: 0.925rem;
+      font-weight: 700;
+      line-height: 1.05;
+      padding: 15px 10px;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    th:last-child,
+    td:last-child {
+      border-right: 0;
+    }
+
+    td {
+      height: 57px;
+      border-right: 1px solid var(--grid);
+      border-bottom: 1px solid var(--grid);
+      font-size: 0.875rem;
+      font-weight: 700;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+      padding: 12px 10px;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    tbody tr:not(.message-row) {
+      transition: filter 150ms ease;
+    }
+
+    tbody tr:not(.message-row):hover td {
+      filter: brightness(0.96);
+    }
+
+    .message-cell {
+      height: 110px;
+      background: #ffffff;
+      color: #64748b;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .error-cell {
+      color: #a61b1b;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      margin-right: 8px;
+      border: 3px solid #dbe5f5;
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      vertical-align: -4px;
+      animation: spin 800ms linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .form-link-section {
+      margin: 45px auto 60px;
+      padding: 0 16px;
+      text-align: center;
+    }
+
+    .form-link-section h2 {
+      margin: 0 0 18px;
+      color: var(--navy);
+      font-size: 1.75rem;
+    }
+
+    .form-button {
+      display: inline-block;
+      border-radius: 35px;
+      background: linear-gradient(135deg, #ff8a00, var(--blue));
+      box-shadow: 0 8px 20px rgba(74, 118, 209, 0.35);
+      color: #ffffff;
+      font-size: 1.05rem;
+      font-weight: 700;
+      padding: 16px 34px;
+      text-decoration: none;
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .form-button:hover,
+    .form-button:focus-visible {
+      box-shadow: 0 12px 25px rgba(74, 118, 209, 0.45);
+      transform: translateY(-3px);
+    }
+
+    .form-button:focus-visible {
+      outline: 3px solid rgba(255, 138, 0, 0.35);
+      outline-offset: 4px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 768px) {
+      .main-header {
+        padding-top: 22px;
+      }
+
+      .logo {
+        width: 95px;
+        height: 95px;
+      }
+
+      h1 {
+        letter-spacing: 1px;
+      }
+
+      .table-card {
+        width: 98%;
+      }
+
+      .legend {
+        gap: 9px;
+      }
+
+      .form-link-section h2 {
+        font-size: 1.5rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="main-header">
+    <img
+      class="logo"
+      src="https://lh3.googleusercontent.com/d/1GznwpFKbH3zcJIB3Ar8tGwxTVkEObAZO"
+      alt="SK Tech logo"
+      width="115"
+      height="115"
+    >
+    <h1>SK Tech Interview Panel Sheet</h1>
+    <p class="tagline">Your Future, Our Mission</p>
+  </header>
+
+  <main>
+    <section class="legend" aria-label="Interview row colors">
+      <span class="legend-item today">Today Interview</span>
+      <span class="legend-item conflict">Time Conflict</span>
+      <span class="legend-item upcoming">Upcoming Interview</span>
+    </section>
+
+    <p id="tableStatus" class="sr-only" aria-live="polite">Loading interview schedule</p>
+
+    <div class="table-card" role="region" aria-label="Interview schedule" tabindex="0">
+      <table>
+        <colgroup>
+          <col class="id">
+          <col class="name">
+          <col class="round">
+          <col class="technology">
+          <col class="company">
+          <col class="date">
+          <col class="time">
+          <col class="time">
+          <col class="batch">
+        </colgroup>
+        <thead>
+          <tr id="tableHeaders">
+            <th scope="col">Sk Tech<br>Register ID</th>
+            <th scope="col">Full Name</th>
+            <th scope="col">Round</th>
+            <th scope="col">Technologies<br>Required*</th>
+            <th scope="col">Interview<br>Company</th>
+            <th scope="col">Interview<br>Date</th>
+            <th scope="col">Interview Time (From) or If Time Not confirmed plz select 00:00 like Assessment</th>
+            <th scope="col">Interview Time (To) or If Time Not confirmed plz select 00:00 like Assessment</th>
+            <th scope="col">Batch</th>
+          </tr>
+        </thead>
+        <tbody id="interviewRows">
+          <tr class="message-row">
+            <td class="message-cell" colspan="9">
+              <span class="spinner" aria-hidden="true"></span>
+              Loading interview schedule…
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section class="form-link-section" aria-labelledby="formHeading">
+      <h2 id="formHeading">Fill Interview Form</h2>
+      <a
+        class="form-button"
+        href="https://docs.google.com/forms/d/e/1FAIpQLSephX9KvEW53ZZrLTOTeakP6XC04aN1HCaYoH-l4rN3bwpaJA/viewform"
+        target="_blank"
+        rel="noopener noreferrer"
+      >Open SK Tech Interviews Form</a>
+    </section>
+  </main>
+
+  <noscript>This page needs JavaScript to load the interview schedule.</noscript>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const COLUMN_COUNT = 9;
+      const tbody = document.getElementById('interviewRows');
+      const status = document.getElementById('tableStatus');
+
+      // Used only when Html.html is opened locally for design review. The deployed
+      // Apps Script page always replaces this with live spreadsheet data.
+      const previewPayload = {
+        headers: [],
+        rows: [
+          {
+            values: ['SK99', 'SK Tech', 'Interview Supporter not available', 'Interview Supporter not available', 'Shiva', '10/16/2026', '09:00:00 AM', '02:00:00 PM', '4'],
+            status: 'today'
+          },
+          {
+            values: ['SK99', 'Sample Candidate', 'Round 2', 'Full Stack Dot Net Developer', 'Example Company', '10/16/2026', '11:30:00 AM', '01:00:00 PM', '4'],
+            status: 'conflict'
+          },
+          {
+            values: ['SK32', 'Upcoming Candidate', 'Round 1', 'Data Engineer', 'Future Company', '10/17/2026', '02:30:00 PM', '03:30:00 PM', '2'],
+            status: 'upcoming'
+          }
+        ]
+      };
+
+      function appendMessage(message, className = '') {
+        tbody.replaceChildren();
+        const row = document.createElement('tr');
+        row.className = 'message-row';
+        const cell = document.createElement('td');
+        cell.colSpan = COLUMN_COUNT;
+        cell.className = `message-cell ${className}`.trim();
+        cell.textContent = message;
+        row.appendChild(cell);
+        tbody.appendChild(row);
+      }
+
+      function normalizeValues(values) {
+        return Array.from({ length: COLUMN_COUNT }, (_, index) => {
+          const value = Array.isArray(values) ? values[index] : '';
+          return value === null || value === undefined ? '' : String(value);
+        });
+      }
+
+      function renderSchedule(payload) {
+        const rows = Array.isArray(payload && payload.rows) ? payload.rows : [];
+
+        if (rows.length === 0) {
+          appendMessage('No upcoming interviews available');
+          status.textContent = 'No upcoming interviews available';
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        rows.forEach((interview) => {
+          const row = document.createElement('tr');
+          const rowStatus = ['today', 'conflict', 'upcoming'].includes(interview.status)
+            ? interview.status
+            : 'upcoming';
+          row.className = rowStatus;
+
+          normalizeValues(interview.values).forEach((value) => {
+            const cell = document.createElement('td');
+            cell.textContent = value;
+            row.appendChild(cell);
+          });
+
+          fragment.appendChild(row);
+        });
+
+        tbody.replaceChildren(fragment);
+        status.textContent = `${rows.length} upcoming interview${rows.length === 1 ? '' : 's'} loaded`;
+      }
+
+      function showError(error) {
+        const message = error && error.message
+          ? error.message
+          : 'The interview schedule could not be loaded. Please refresh the page.';
+        appendMessage(message, 'error-cell');
+        status.textContent = message;
+      }
+
+      function loadSchedule() {
+        const runner = window.google && window.google.script && window.google.script.run;
+
+        if (runner) {
+          runner
+            .withSuccessHandler(renderSchedule)
+            .withFailureHandler(showError)
+            .getInterviewData();
+          return;
+        }
+
+        renderSchedule(previewPayload);
+      }
+
+      loadSchedule();
+    })();
+  </script>
+</body>
+</html>
