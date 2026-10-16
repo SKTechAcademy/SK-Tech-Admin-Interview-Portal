@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#0b2d5c">
   <title>SK Tech Interview Panel Sheet</title>
 
@@ -370,6 +371,21 @@
       'use strict';
 
       const COLUMN_COUNT = 9;
+      const TIME_ZONE = 'Asia/Kolkata';
+      const SHEET_NAME = 'Pannel List';
+      const SHEET_DATA_URL = 'https://docs.google.com/spreadsheets/d/1VQF3CI8MTBz4vAC4R-13_XEfY774h1Q7vxhBsSxA2tU/gviz/tq';
+      const SHEET_CALLBACK = 'handleSkTechSheetData';
+      const EXPECTED_HEADERS = [
+        'Sk Tech Register ID',
+        'Full Name',
+        'Round',
+        'Technologies Required*',
+        'Interview Company',
+        'Interview Date',
+        'Interview Time (From) or If Time Not confirmed plz select 00:00 like Assessment',
+        'Interview Time (To) or If Time Not confirmed plz select 00:00 like Assessment',
+        'Batch'
+      ];
       const tbody = document.getElementById('interviewRows');
       const status = document.getElementById('tableStatus');
 
@@ -410,6 +426,226 @@
           const value = Array.isArray(values) ? values[index] : '';
           return value === null || value === undefined ? '' : String(value);
         });
+      }
+
+      function normalizeHeader(value) {
+        return String(value || '')
+          .replace(/\u00a0/g, ' ')
+          .trim()
+          .replace(/\s+/g, ' ')
+          .replace(/\s*\*\s*/g, '*')
+          .toLowerCase();
+      }
+
+      function validateSheetHeaders(columns) {
+        const problems = EXPECTED_HEADERS.reduce((result, expected, index) => {
+          const actual = columns[index] && columns[index].label
+            ? columns[index].label
+            : '';
+          if (normalizeHeader(actual) !== normalizeHeader(expected)) {
+            result.push(`column ${index + 1}: expected "${expected}", found "${actual || '(blank)'}"`);
+          }
+          return result;
+        }, []);
+
+        if (problems.length) {
+          throw new Error(`The ${SHEET_NAME} headers do not match the portal. ${problems.join('; ')}.`);
+        }
+      }
+
+      function formatDateKey(dateKey) {
+        const [year, month, day] = dateKey.split('-').map(Number);
+        return `${month}/${day}/${year}`;
+      }
+
+      function getTodayKey() {
+        const parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: TIME_ZONE,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).formatToParts(new Date());
+        const values = Object.fromEntries(
+          parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value])
+        );
+        return `${values.year}-${values.month}-${values.day}`;
+      }
+
+      function parseSheetDate(cell) {
+        const raw = String(cell && cell.v != null ? cell.v : '').trim();
+        const match = raw.match(/^Date\((\d{4}),(\d{1,2}),(\d{1,2})/);
+        if (!match) return null;
+
+        const year = Number(match[1]);
+        const month = Number(match[2]) + 1;
+        const day = Number(match[3]);
+        const key = [
+          String(year).padStart(4, '0'),
+          String(month).padStart(2, '0'),
+          String(day).padStart(2, '0')
+        ].join('-');
+
+        return { key, display: formatDateKey(key) };
+      }
+
+      function formatTimeSeconds(seconds) {
+        const hour24 = Math.floor(seconds / 3600);
+        const minute = Math.floor((seconds % 3600) / 60);
+        const second = seconds % 60;
+        const meridiem = hour24 >= 12 ? 'PM' : 'AM';
+        const hour12 = hour24 % 12 || 12;
+        return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')} ${meridiem}`;
+      }
+
+      function parseTimeText(value) {
+        const match = String(value || '').trim().match(
+          /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AP]M)?$/i
+        );
+        if (!match) return null;
+
+        let hour = Number(match[1]);
+        const minute = Number(match[2]);
+        const second = match[3] ? Number(match[3]) : 0;
+        const meridiem = match[4] ? match[4].toUpperCase() : '';
+
+        if (minute > 59 || second > 59) return null;
+        if (meridiem) {
+          if (hour < 1 || hour > 12) return null;
+          if (hour === 12) hour = 0;
+          if (meridiem === 'PM') hour += 12;
+        } else if (hour > 23) {
+          return null;
+        }
+
+        const seconds = hour * 3600 + minute * 60 + second;
+        return { seconds, display: formatTimeSeconds(seconds) };
+      }
+
+      function parseSheetTime(cell) {
+        const raw = String(cell && cell.v != null ? cell.v : '').trim();
+        const dateMatch = raw.match(
+          /^Date\(\d{4},\d{1,2},\d{1,2},(\d{1,2}),(\d{1,2}),(\d{1,2})\)$/
+        );
+
+        if (dateMatch) {
+          const seconds = Number(dateMatch[1]) * 3600 +
+            Number(dateMatch[2]) * 60 + Number(dateMatch[3]);
+          return { seconds, display: formatTimeSeconds(seconds) };
+        }
+
+        return parseTimeText(cell && (cell.f != null ? cell.f : cell.v));
+      }
+
+      function displayCellValue(cell) {
+        if (!cell) return '';
+        const value = cell.f != null ? cell.f : cell.v;
+        return value == null ? '' : String(value);
+      }
+
+      function prepareSheetPayload(response) {
+        if (!response || response.status !== 'ok' || !response.table) {
+          const detail = response && Array.isArray(response.errors) && response.errors[0]
+            ? response.errors[0].detailed_message || response.errors[0].message
+            : '';
+          throw new Error(detail || 'Google Sheets did not return interview data.');
+        }
+
+        const columns = Array.isArray(response.table.cols) ? response.table.cols : [];
+        validateSheetHeaders(columns);
+        const todayKey = getTodayKey();
+        const preparedRows = [];
+
+        (response.table.rows || []).forEach((sheetRow, sourceOrder) => {
+          const cells = Array.isArray(sheetRow.c) ? sheetRow.c : [];
+          const interviewDate = parseSheetDate(cells[5]);
+          if (!interviewDate || interviewDate.key < todayKey) return;
+
+          const startTime = parseSheetTime(cells[6]);
+          const endTime = parseSheetTime(cells[7]);
+          const values = Array.from(
+            { length: COLUMN_COUNT },
+            (_, index) => displayCellValue(cells[index])
+          );
+          values[5] = interviewDate.display;
+          if (startTime) values[6] = startTime.display;
+          if (endTime) values[7] = endTime.display;
+
+          preparedRows.push({
+            values,
+            dateKey: interviewDate.key,
+            startSeconds: startTime ? startTime.seconds : null,
+            endSeconds: endTime ? endTime.seconds : null,
+            sourceOrder
+          });
+        });
+
+        preparedRows.sort((left, right) => {
+          if (left.dateKey !== right.dateKey) {
+            return left.dateKey < right.dateKey ? -1 : 1;
+          }
+          const leftStart = left.startSeconds == null ? Number.POSITIVE_INFINITY : left.startSeconds;
+          const rightStart = right.startSeconds == null ? Number.POSITIVE_INFINITY : right.startSeconds;
+          return leftStart - rightStart || left.sourceOrder - right.sourceOrder;
+        });
+
+        const previousIntervalsByDate = Object.create(null);
+        const rows = preparedRows.map((row) => {
+          let rowStatus = row.dateKey === todayKey ? 'today' : 'upcoming';
+          const isValidInterval = row.startSeconds != null &&
+            row.endSeconds != null && row.endSeconds > row.startSeconds;
+          const previousIntervals = previousIntervalsByDate[row.dateKey] || [];
+
+          if (isValidInterval) {
+            if (previousIntervals.some(
+              (interval) => row.startSeconds < interval.end && row.endSeconds > interval.start
+            )) {
+              rowStatus = 'conflict';
+            }
+            previousIntervals.push({ start: row.startSeconds, end: row.endSeconds });
+            previousIntervalsByDate[row.dateKey] = previousIntervals;
+          }
+
+          return { values: row.values, status: rowStatus };
+        });
+
+        return { headers: EXPECTED_HEADERS.slice(), rows };
+      }
+
+      function loadScheduleFromPublicSheet() {
+        const script = document.createElement('script');
+        const timeout = window.setTimeout(() => {
+          script.remove();
+          delete window[SHEET_CALLBACK];
+          showError(new Error('The live interview schedule took too long to load. Please refresh the page.'));
+        }, 20000);
+
+        window[SHEET_CALLBACK] = (response) => {
+          window.clearTimeout(timeout);
+          script.remove();
+          delete window[SHEET_CALLBACK];
+          try {
+            renderSchedule(prepareSheetPayload(response));
+          } catch (error) {
+            showError(error);
+          }
+        };
+
+        const params = new URLSearchParams({
+          tqx: `out:json;responseHandler:${SHEET_CALLBACK}`,
+          tq: `select A, B, C, D, E, F, G, H, I where F >= date '${getTodayKey()}' order by F, G`,
+          sheet: SHEET_NAME,
+          range: 'A:I',
+          cacheBust: String(Date.now())
+        });
+        script.src = `${SHEET_DATA_URL}?${params.toString()}`;
+        script.async = true;
+        script.onerror = () => {
+          window.clearTimeout(timeout);
+          script.remove();
+          delete window[SHEET_CALLBACK];
+          showError(new Error('The live interview schedule could not be loaded from Google Sheets.'));
+        };
+        document.head.appendChild(script);
       }
 
       function renderSchedule(payload) {
@@ -459,6 +695,12 @@
             .withSuccessHandler(renderSchedule)
             .withFailureHandler(showError)
             .getInterviewData();
+          return;
+        }
+
+        const livePreviewRequested = new URLSearchParams(window.location.search).get('live') === '1';
+        if (window.location.protocol === 'https:' || livePreviewRequested) {
+          loadScheduleFromPublicSheet();
           return;
         }
 

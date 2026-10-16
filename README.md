@@ -1,6 +1,6 @@
 # SK Tech Admin Interview Portal
 
-A Google Apps Script web app for displaying the live SK Tech interview schedule from Google Sheets.
+A responsive interview portal that displays the live SK Tech interview schedule from Google Sheets. It can run on GitHub Pages or as a Google Apps Script web app.
 
 The portal reproduces the supplied interview-panel design and automatically classifies rows as:
 
@@ -14,6 +14,7 @@ Only interviews scheduled for today or later are displayed. Rows are sorted by i
 
 - `Code.gs` — spreadsheet access, schedule preparation, conflict detection, and registration email automation
 - `Html.html` — responsive interview-panel interface
+- `index.html` — GitHub Pages entry point that keeps the portal on the Pages URL
 - `appsscript.json` — Apps Script runtime and time-zone configuration
 
 ## Data source
@@ -27,14 +28,22 @@ Expected columns:
 1. Sk Tech Register ID
 2. Full Name
 3. Round
-4. Technologies Required
+4. Technologies Required*
 5. Interview Company
 6. Interview Date
 7. Interview Time (From)
 8. Interview Time (To)
 9. Batch
 
-The server validates the header row before returning data, so a renamed or missing column produces a useful error instead of a misaligned table.
+Both the Apps Script server and GitHub Pages client validate the header row, so a renamed or missing column produces a useful error instead of a misaligned table.
+
+## GitHub Pages
+
+The repository's public site renders the complete interview-panel interface directly at:
+
+https://sktechacademy.github.io/SK-Tech-Admin-Interview-Portal/
+
+It reads columns A:I from `Pannel List` through Google Sheets' read-only visualization endpoint whenever the page is opened or refreshed. It does not redirect to Apps Script and cannot edit the spreadsheet or run the registration automation.
 
 ## Deploy to Google Apps Script
 
@@ -65,7 +74,7 @@ The sender address `support@mysktech.com` must be configured as a Gmail alias fo
 
 ## Local UI preview
 
-`Html.html` contains a small, non-production preview dataset that is used only when the file is opened outside Apps Script. The deployed Apps Script page always calls `getInterviewData()` and renders live spreadsheet data.
+`Html.html` contains a small, non-production preview dataset for plain local-file viewing. The deployed Apps Script page calls `getInterviewData()`, while GitHub Pages and local previews opened with `?live=1` render live spreadsheet data.
 
 From this directory, start any static file server and open `Html.html`. For example:
 
@@ -85,4 +94,4 @@ npm test
 
 ## Privacy
 
-The schedule contains candidate and interview information. Keep the Apps Script web-app audience limited to the people who need access. The implementation intentionally keeps the default Apps Script frame protection instead of enabling `ALLOWALL`.
+The GitHub Pages site is public, and its schedule source must also remain publicly readable for live loading. Anyone who can open the site can view the candidate and interview information returned from `Pannel List`. The browser integration is read-only and does not alter existing spreadsheet data. For restricted access, use the Apps Script deployment with a limited audience instead.
